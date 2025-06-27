@@ -8,7 +8,7 @@ import type { FilterState, SortConfig, SensorData } from './types';
 import { ErrorBoundary, FilterControls, SensorTable, Statistics } from './components';
 
 // Import utilities
-import { sensorStore } from './utils';
+import { sensorStore, performanceMonitor } from './utils';
 
 // Main App Component
 const App: React.FC = () => {
@@ -38,61 +38,73 @@ const App: React.FC = () => {
 
   // Filter and sort data
   const filteredAndSortedData = useMemo(() => {
-    let filtered = sensorData;
+    return performanceMonitor.measureDataProcessing(() => {
+      let filtered = sensorData;
 
-    // Apply filters
-    if (filters.temperatureMin > 0 || filters.temperatureMax > 0) {
-      filtered = filtered.filter(sensor => {
-        const temp = sensor.temperature;
-        const minCheck = filters.temperatureMin === 0 || temp >= filters.temperatureMin;
-        const maxCheck = filters.temperatureMax === 0 || temp <= filters.temperatureMax;
-        return minCheck && maxCheck;
-      });
-    }
+      // Apply filters
+      if (filters.temperatureMin > 0 || filters.temperatureMax > 0) {
+        filtered = performanceMonitor.measureDataProcessing(() => {
+          return filtered.filter(sensor => {
+            const temp = sensor.temperature;
+            const minCheck = filters.temperatureMin === 0 || temp >= filters.temperatureMin;
+            const maxCheck = filters.temperatureMax === 0 || temp <= filters.temperatureMax;
+            return minCheck && maxCheck;
+          });
+        }, 'filtering');
+      }
 
-    if (filters.humidityMin > 0 || filters.humidityMax > 0) {
-      filtered = filtered.filter(sensor => {
-        const humidity = sensor.humidity;
-        const minCheck = filters.humidityMin === 0 || humidity >= filters.humidityMin;
-        const maxCheck = filters.humidityMax === 0 || humidity <= filters.humidityMax;
-        return minCheck && maxCheck;
-      });
-    }
+      if (filters.humidityMin > 0 || filters.humidityMax > 0) {
+        filtered = performanceMonitor.measureDataProcessing(() => {
+          return filtered.filter(sensor => {
+            const humidity = sensor.humidity;
+            const minCheck = filters.humidityMin === 0 || humidity >= filters.humidityMin;
+            const maxCheck = filters.humidityMax === 0 || humidity <= filters.humidityMax;
+            return minCheck && maxCheck;
+          });
+        }, 'filtering');
+      }
 
-    if (filters.airQualityMin > 0 || filters.airQualityMax > 0) {
-      filtered = filtered.filter(sensor => {
-        const aqi = sensor.airQuality;
-        const minCheck = filters.airQualityMin === 0 || aqi >= filters.airQualityMin;
-        const maxCheck = filters.airQualityMax === 0 || aqi <= filters.airQualityMax;
-        return minCheck && maxCheck;
-      });
-    }
+      if (filters.airQualityMin > 0 || filters.airQualityMax > 0) {
+        filtered = performanceMonitor.measureDataProcessing(() => {
+          return filtered.filter(sensor => {
+            const aqi = sensor.airQuality;
+            const minCheck = filters.airQualityMin === 0 || aqi >= filters.airQualityMin;
+            const maxCheck = filters.airQualityMax === 0 || aqi <= filters.airQualityMax;
+            return minCheck && maxCheck;
+          });
+        }, 'filtering');
+      }
 
-    // Apply sorting
-    if (sortConfig.key) {
-      filtered.sort((a, b) => {
-        const aVal = a[sortConfig.key!];
-        const bVal = b[sortConfig.key!];
-        
-        if (sortConfig.key === 'timestamp') {
-          const aTime = new Date(aVal as string).getTime();
-          const bTime = new Date(bVal as string).getTime();
-          return sortConfig.direction === 'asc' ? aTime - bTime : bTime - aTime;
-        }
-        
-        if (typeof aVal === 'number' && typeof bVal === 'number') {
-          return sortConfig.direction === 'asc' ? aVal - bVal : bVal - aVal;
-        }
-        
-        const aStr = String(aVal);
-        const bStr = String(bVal);
-        return sortConfig.direction === 'asc' 
-          ? aStr.localeCompare(bStr) 
-          : bStr.localeCompare(aStr);
-      });
-    }
+      // Apply sorting
+      if (sortConfig.key) {
+        filtered = performanceMonitor.measureDataProcessing(() => {
+          const sorted = [...filtered];
+          sorted.sort((a, b) => {
+            const aVal = a[sortConfig.key!];
+            const bVal = b[sortConfig.key!];
+            
+            if (sortConfig.key === 'timestamp') {
+              const aTime = new Date(aVal as string).getTime();
+              const bTime = new Date(bVal as string).getTime();
+              return sortConfig.direction === 'asc' ? aTime - bTime : bTime - aTime;
+            }
+            
+            if (typeof aVal === 'number' && typeof bVal === 'number') {
+              return sortConfig.direction === 'asc' ? aVal - bVal : bVal - aVal;
+            }
+            
+            const aStr = String(aVal);
+            const bStr = String(bVal);
+            return sortConfig.direction === 'asc' 
+              ? aStr.localeCompare(bStr) 
+              : bStr.localeCompare(aStr);
+          });
+          return sorted;
+        }, 'sorting');
+      }
 
-    return filtered;
+      return filtered;
+    }, 'processing');
   }, [sensorData, filters, sortConfig]);
 
   const handleSort = useCallback((key: keyof SensorData) => {

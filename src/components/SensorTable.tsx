@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import type { SensorData, SortConfig, AirQualityInfo } from '../types';
 
 interface SensorTableProps {
@@ -7,12 +7,45 @@ interface SensorTableProps {
   onSort: (key: keyof SensorData) => void;
 }
 
-// Sensor Table Component
+// Pagination constants
+const ITEMS_PER_PAGE = 20;
+const PAGE_SIZE_OPTIONS = [10, 20, 50, 100];
+
+// Sensor Table Component with Pagination
 export const SensorTable: React.FC<SensorTableProps> = ({ 
   data, 
   sortConfig, 
   onSort 
 }) => {
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(ITEMS_PER_PAGE);
+
+  // Calculate pagination data
+  const paginationData = useMemo(() => {
+    const totalItems = data.length;
+    const totalPages = Math.ceil(totalItems / pageSize);
+    const startIndex = (currentPage - 1) * pageSize;
+    const endIndex = startIndex + pageSize;
+    const currentItems = data.slice(startIndex, endIndex);
+    
+    return {
+      currentItems,
+      totalItems,
+      totalPages,
+      startIndex,
+      endIndex: Math.min(endIndex, totalItems),
+      hasNextPage: currentPage < totalPages,
+      hasPrevPage: currentPage > 1,
+    };
+  }, [data, currentPage, pageSize]);
+
+  // Reset to first page when data changes significantly
+  React.useEffect(() => {
+    if (currentPage > paginationData.totalPages && paginationData.totalPages > 0) {
+      setCurrentPage(1);
+    }
+  }, [data.length, currentPage, paginationData.totalPages]);
+
   const formatTimestamp = (timestamp: string) => {
     return new Date(timestamp).toLocaleString();
   };
@@ -30,6 +63,46 @@ export const SensorTable: React.FC<SensorTableProps> = ({
     return sortConfig.direction === 'asc' ? '↑' : '↓';
   };
 
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  const handlePageSizeChange = (newSize: number) => {
+    setPageSize(newSize);
+    setCurrentPage(1); // Reset to first page when changing page size
+  };
+
+  const generatePageNumbers = () => {
+    const { totalPages } = paginationData;
+    const pages = [];
+    const maxVisiblePages = 5;
+    
+    if (totalPages <= maxVisiblePages) {
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      const startPage = Math.max(1, currentPage - 2);
+      const endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+      
+      if (startPage > 1) {
+        pages.push(1);
+        if (startPage > 2) pages.push('...');
+      }
+      
+      for (let i = startPage; i <= endPage; i++) {
+        pages.push(i);
+      }
+      
+      if (endPage < totalPages) {
+        if (endPage < totalPages - 1) pages.push('...');
+        pages.push(totalPages);
+      }
+    }
+    
+    return pages;
+  };
+
   if (data.length === 0) {
     return (
       <div className="no-data">
@@ -38,8 +111,31 @@ export const SensorTable: React.FC<SensorTableProps> = ({
     );
   }
 
+  const { currentItems, totalItems, totalPages, startIndex, endIndex, hasNextPage, hasPrevPage } = paginationData;
+
   return (
     <div className="table-container">
+      {/* Pagination Controls - Top */}
+      <div className="pagination-controls">
+        <div className="pagination-info">
+          <span>
+            Showing {startIndex + 1}-{endIndex} of {totalItems} readings
+          </span>
+          <select 
+            value={pageSize} 
+            onChange={(e) => handlePageSizeChange(Number(e.target.value))}
+            className="page-size-selector"
+          >
+            {PAGE_SIZE_OPTIONS.map(size => (
+              <option key={size} value={size}>
+                {size} per page
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      {/* Data Table */}
       <table className="sensor-table">
         <thead>
           <tr>
@@ -61,7 +157,7 @@ export const SensorTable: React.FC<SensorTableProps> = ({
           </tr>
         </thead>
         <tbody>
-          {data.map((sensor, index) => {
+          {currentItems.map((sensor, index) => {
             const aqiInfo = getAirQualityLevel(sensor.airQuality);
             return (
               <tr key={`${sensor.sensorId}-${sensor.timestamp}-${index}`}>
@@ -77,6 +173,44 @@ export const SensorTable: React.FC<SensorTableProps> = ({
           })}
         </tbody>
       </table>
+
+      {/* Pagination Controls - Bottom */}
+      {totalPages > 1 && (
+        <div className="pagination">
+          <button 
+            onClick={() => handlePageChange(currentPage - 1)}
+            disabled={!hasPrevPage}
+            className="pagination-btn"
+          >
+            ← Previous
+          </button>
+          
+          <div className="pagination-numbers">
+            {generatePageNumbers().map((page, index) => (
+              <React.Fragment key={index}>
+                {page === '...' ? (
+                  <span className="pagination-ellipsis">...</span>
+                ) : (
+                  <button
+                    onClick={() => handlePageChange(page as number)}
+                    className={`pagination-number ${currentPage === page ? 'active' : ''}`}
+                  >
+                    {page}
+                  </button>
+                )}
+              </React.Fragment>
+            ))}
+          </div>
+          
+          <button 
+            onClick={() => handlePageChange(currentPage + 1)}
+            disabled={!hasNextPage}
+            className="pagination-btn"
+          >
+            Next →
+          </button>
+        </div>
+      )}
     </div>
   );
 }; 

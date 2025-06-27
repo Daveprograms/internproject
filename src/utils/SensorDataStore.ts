@@ -1,4 +1,5 @@
 import type { SensorData, StoreSnapshot } from '../types';
+import { performanceMonitor } from './PerformanceMonitor';
 
 // External Store for Sensor Data
 export class SensorDataStore {
@@ -26,14 +27,20 @@ export class SensorDataStore {
     try {
       this.intervalId = setInterval(() => {
         try {
-          const updates = Array.from({ length: 5 }, (_, i) =>
-            this.generateMetrics(`Sensor-${i + 1}`)
+          const updates = performanceMonitor.measureDataProcessing(
+            () => Array.from({ length: 5 }, (_, i) =>
+              this.generateMetrics(`Sensor-${i + 1}`)
+            ),
+            'processing'
           );
           
           // Keep only the latest 1000 records for performance
           this.data = [...updates, ...this.data].slice(0, 1000);
           this.isConnected = true;
           this.error = null;
+          
+          // Track data update for performance monitoring
+          performanceMonitor.trackDataUpdate();
           
           // Invalidate cached snapshot
           this.cachedSnapshot = null;
