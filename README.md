@@ -69,7 +69,10 @@ npm run dev
 # Build for production
 npm run build
 
-# Preview production build
+# Deploy to Vercel
+npm run deploy:vercel
+
+# Preview production build locally
 npm run preview
 ```
 
@@ -250,29 +253,112 @@ console.log(`Performance Grade: ${grade.grade} (${grade.score}/100)`);
 - Smart data retention (1000-record limit)
 - Efficient garbage collection patterns
 
-## 🚀 Deployment Options
+## 🚀 Deployment with Vercel
 
-### Static Hosting (Recommended)
+### **Live Application**
+🌐 **Deployed on Vercel**: [https://your-greenhouse-dashboard.vercel.app](https://your-greenhouse-dashboard.vercel.app)
+
+### **Quick Deployment to Vercel**
 ```bash
-# Build the project
+# Method 1: Using Vercel CLI (Recommended)
+npm install -g vercel
 npm run build
+vercel --prod
 
-# Deploy the 'dist' folder to:
-# - Vercel: vercel --prod
-# - Netlify: netlify deploy --prod --dir=dist
-# - GitHub Pages: npm run deploy:gh-pages
+# Method 2: Using npm script
+npm run deploy:vercel
+
+# Method 3: Git Integration (Automatic)
+# Connect your GitHub repo to Vercel for automatic deployments
 ```
 
-### Docker Deployment
-```dockerfile
-FROM node:18-alpine
-WORKDIR /app
-COPY package*.json ./
-RUN npm install
-COPY . .
-RUN npm run build
-FROM nginx:alpine
-COPY --from=0 /app/dist /usr/share/nginx/html
+### **Vercel Configuration**
+The project includes optimized Vercel configuration:
+
+```json
+// vercel.json (if needed)
+{
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "installCommand": "npm install",
+  "framework": "vite"
+}
+```
+
+### **Environment Variables** (if needed in future)
+```bash
+# Vercel environment variables
+VITE_API_URL=https://api.your-domain.com
+VITE_ENVIRONMENT=production
+```
+
+### **Alternative Deployment Options**
+```bash
+# Netlify (alternative)
+netlify deploy --prod --dir=dist
+
+# GitHub Pages (alternative)  
+npm run deploy:gh-pages
+
+# Other static hosts: Deploy the 'dist' folder after running 'npm run build'
+```
+
+### **Step-by-Step Deployment Guide**
+
+#### **Option 1: Vercel CLI (Fastest)**
+```bash
+# 1. Install Vercel CLI globally
+npm install -g vercel
+
+# 2. Login to Vercel
+vercel login
+
+# 3. Deploy the project
+vercel --prod
+
+# 4. Follow the prompts:
+# - Link to existing project? [y/N] N
+# - What's your project's name? greenhouse-sensor-dashboard
+# - In which directory is your code located? ./
+```
+
+#### **Option 2: GitHub Integration (Recommended for Continuous Deployment)**
+1. Push your code to GitHub repository
+2. Go to [Vercel Dashboard](https://vercel.com/dashboard)
+3. Click "New Project"
+4. Import your GitHub repository
+5. Vercel auto-detects Vite configuration
+6. Click "Deploy"
+7. Your app will be live at `https://your-project-name.vercel.app`
+
+#### **Option 3: Drag & Drop Deployment**
+```bash
+# 1. Build the project locally
+npm run build
+
+# 2. Go to Vercel Dashboard
+# 3. Drag the 'dist' folder to Vercel
+# 4. Your app will be deployed instantly
+```
+
+### **Post-Deployment Verification Checklist**
+- [ ] Dashboard loads within 3 seconds
+- [ ] Real-time data updates every 2 seconds  
+- [ ] All filtering and sorting functions work
+- [ ] Pagination controls respond correctly
+- [ ] Mobile responsiveness verified
+- [ ] Performance metrics meet targets
+- [ ] No console errors in production
+
+### **Updating Your Deployed App**
+```bash
+# After making changes, simply run:
+vercel --prod
+
+# Or push to GitHub if using Git integration
+git add .
+git commit -m "Update dashboard"
+git push origin main
 ```
 
 ## 🎯 Performance Metrics & Analysis
