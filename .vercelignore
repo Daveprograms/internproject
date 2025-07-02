@@ -1,19 +1,6 @@
-# Development files
-src/
-public/
+# Development files that aren't needed for deployment
 node_modules/
 .git/
-
-# Configuration files
-.eslintrc.*
-.gitignore
-tsconfig.*.json
-vite.config.ts
-eslint.config.js
-
-# Documentation
-README.md
-TESTING.md
 
 # Cache and temporary files
 .cache/
@@ -32,4 +19,7 @@ TESTING.md
 Thumbs.db
 
 # Build artifacts that aren't needed
-*.tsbuildinfo 
+*.tsbuildinfo
+
+# Documentation (optional - can be included)
+TESTING.md 
