@@ -22,6 +22,25 @@ const App: React.FC = () => {
 
   const { data: sensorData, isConnected, error } = storeSnapshot;
 
+  // Debug effect to track data flow
+  React.useEffect(() => {
+    console.log('App mounted. Sensor data count:', sensorData.length);
+    console.log('Connection status:', isConnected);
+    if (error) console.error('Sensor error:', error);
+    
+    // Failsafe: If no data after 5 seconds, log debug info
+    const timeoutId = setTimeout(() => {
+      if (sensorData.length === 0) {
+        console.warn('No sensor data after 5 seconds. Debug info:');
+        if (typeof window !== 'undefined' && (window as any).debugSensorStore) {
+          (window as any).debugSensorStore();
+        }
+      }
+    }, 5000);
+
+    return () => clearTimeout(timeoutId);
+  }, [sensorData.length, isConnected, error]);
+
   const [filters, setFilters] = useState<FilterState>({
     temperatureMin: 0,
     temperatureMax: 0,

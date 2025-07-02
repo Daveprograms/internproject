@@ -5,14 +5,37 @@ import { performanceMonitor } from './PerformanceMonitor';
 export class SensorDataStore {
   private data: SensorData[] = [];
   private listeners = new Set<() => void>();
-  private intervalId: number | null = null;
+  private intervalId: ReturnType<typeof setInterval> | null = null;
   private isConnected = false;
   private error: string | null = null;
   private cachedSnapshot: StoreSnapshot | null = null;
 
   constructor() {
-    this.startSimulation();
+    // Generate initial data immediately
+    this.generateInitialData();
+    // Start the simulation after a short delay to ensure everything is initialized
+    setTimeout(() => this.startSimulation(), 100);
   }
+
+  // Generate initial data so users see something immediately
+  private generateInitialData = () => {
+    try {
+      const initialData = Array.from({ length: 5 }, (_, i) =>
+        this.generateMetrics(`Sensor-${i + 1}`)
+      );
+      this.data = initialData;
+      this.isConnected = true;
+      this.error = null;
+      
+      // Invalidate cached snapshot
+      this.cachedSnapshot = null;
+      
+      console.log('Initial sensor data generated:', this.data.length, 'readings');
+    } catch (err) {
+      console.error('Failed to generate initial data:', err);
+      this.error = 'Failed to initialize sensor data';
+    }
+  };
 
   // Generate sensor data (based on provided starter code)
   private generateMetrics = (sensorId: string): SensorData => ({
@@ -25,6 +48,13 @@ export class SensorDataStore {
 
   private startSimulation = () => {
     try {
+      // Clear any existing interval
+      if (this.intervalId) {
+        clearInterval(this.intervalId);
+      }
+
+      console.log('Starting sensor data simulation...');
+      
       this.intervalId = setInterval(() => {
         try {
           const updates = performanceMonitor.measureDataProcessing(
@@ -47,6 +77,8 @@ export class SensorDataStore {
           
           // Notify all listeners
           this.listeners.forEach(listener => listener());
+          
+          console.log('Sensor data updated:', updates.length, 'new readings, total:', this.data.length);
         } catch (err) {
           this.error = 'Failed to process sensor data update';
           this.isConnected = false;
@@ -60,6 +92,7 @@ export class SensorDataStore {
       }, 2000);
       
       this.isConnected = true;
+      console.log('Sensor simulation started successfully');
     } catch (err) {
       this.error = 'Failed to initialize sensor data simulation';
       this.isConnected = false;
@@ -104,9 +137,23 @@ export class SensorDataStore {
 // Create a singleton instance of the store
 export const sensorStore = new SensorDataStore();
 
-// Cleanup on page unload
+// Cleanup on page unload and add debug info
 if (typeof window !== 'undefined') {
   window.addEventListener('beforeunload', () => {
     sensorStore.destroy();
   });
+  
+  // Add global debug function (remove in production if needed)
+  (window as any).debugSensorStore = () => {
+    const snapshot = sensorStore.getSnapshot();
+    console.log('Sensor Store Debug:', {
+      dataCount: snapshot.data.length,
+      isConnected: snapshot.isConnected,
+      error: snapshot.error,
+      sampleData: snapshot.data.slice(0, 3)
+    });
+    return snapshot;
+  };
+  
+  console.log('Sensor store initialized. Use debugSensorStore() in console to check status.');
 } 
