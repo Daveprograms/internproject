@@ -34,12 +34,10 @@ export class PerformanceMonitor {
   private metrics: PerformanceMetrics;
   private renderTimes: number[] = [];
   private interactionTimes: number[] = [];
-  private startTime: number;
   private lastUpdateTime: number = 0;
   private updateCount: number = 0;
 
   constructor() {
-    this.startTime = performance.now();
     this.metrics = {
       renderCount: 0,
       averageRenderTime: 0,
@@ -145,7 +143,7 @@ export class PerformanceMonitor {
   // Get current memory usage
   private getMemoryUsage() {
     if ('memory' in performance) {
-      const memory = (performance as any).memory;
+      const memory = (performance as unknown as { memory: { usedJSHeapSize: number; totalJSHeapSize: number; jsHeapSizeLimit: number } }).memory;
       return {
         usedJSHeapSize: memory.usedJSHeapSize,
         totalJSHeapSize: memory.totalJSHeapSize,
@@ -279,7 +277,6 @@ Performance Metrics Summary:
     this.interactionTimes = [];
     this.updateCount = 0;
     this.lastUpdateTime = 0;
-    this.startTime = performance.now();
     
     this.metrics = {
       renderCount: 0,
@@ -304,7 +301,7 @@ export const performanceMonitor = new PerformanceMonitor();
 
 // Helper function to log performance to console (development only)
 export const logPerformance = () => {
-  if (process.env.NODE_ENV === 'development') {
+  if (import.meta.env.DEV) {
     console.log(performanceMonitor.getPerformanceSummary());
     console.log('Performance Grade:', performanceMonitor.getPerformanceGrade());
   }

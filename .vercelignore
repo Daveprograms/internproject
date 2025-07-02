@@ -1,0 +1,35 @@
+# Development files
+src/
+public/
+node_modules/
+.git/
+
+# Configuration files
+.eslintrc.*
+.gitignore
+tsconfig.*.json
+vite.config.ts
+eslint.config.js
+
+# Documentation
+README.md
+TESTING.md
+
+# Cache and temporary files
+.cache/
+.temp/
+*.log
+*.tmp
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Build artifacts that aren't needed
+*.tsbuildinfo 
